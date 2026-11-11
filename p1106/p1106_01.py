@@ -21,3 +21,4 @@ print("예측결과:", results)   # 0,1
 score = clf.score(test_data, test_label) #정답율을 계산할수 있음
 print("정답율:", score)   # 1.0
 
+

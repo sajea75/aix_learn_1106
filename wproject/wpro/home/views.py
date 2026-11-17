@@ -20,7 +20,7 @@ def ajax_data(request):
     print(f'예측무게 : {result[0]:.2f} g')
     # 파일전달
     context = {
-        'data':result[0],'result':'success'
+        'result_data':f'{result[0]:.2f}','result':'success'
     }
     return JsonResponse(context)
 

@@ -1,60 +1,100 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>생선 품종 예측</title>
-    <style>
-        body { font-family: 'Malgun Gothic', sans-serif; max-width: 700px; margin: 40px auto; padding: 20px; }
-        .form-group { margin-bottom: 12px; }
-        label { display: inline-block; width: 100px; font-weight: bold; }
-        input { padding: 6px; width: 180px; }
-        button { padding: 8px 20px; background-color: #2c7be5; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
-        button:hover { background-color: #1a68d1; }
-        .result-box { margin-top: 30px; padding: 20px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; }
-        pre { background: #e9ecef; padding: 10px; border-radius: 4px; font-size: 14px; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메인페이지</title>
+    <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function sendBtn(){
+            // input에 있는 데이터 가져오기
+            const send_data = $('#data').val();
+            console.log("데이터 : "+send_data);
+            // views.py로 데이터 전달
+            $.ajax({
+                url:'/ajax_data/',
+                type:'post',
+                headers:{'X-CSRFToken':'{{csrf_token}}'},
+                data:{'data':send_data},
+                dataType:'json',
+                success:function(data){  
+                    // 예측생선,예측확률,전체생선확률,전체생선이름
+                    // result,result2,result_all,result_name
+                    alert('예측 데이터를 가져옵니다. 성공');
+                    console.log(data)
+                    // 예측무게 데이터
+                    const chart_label = data.result_name; //전체생선이름
+                    const chart_data = data.result_all;   //전체생선확률
+                    $('#input_data').text(send_data);  //예측생선이름
+                    $('#result').text(data.result);  //예측생선이름
+                    $('#result2').text(data.result2); //예측생선확률
+                    
+                    console.log("모든생선확률 : ",chart_data);
+
+                    //chart.js를 통해 그래프 생성
+                    const ctx = document.getElementById('myChart');
+
+                    let chartStatus = Chart.getChart("myChart");
+                    if(chartStatus != undefined){
+                        console.log("destroy success");
+                        chartStatus.destroy(); //리셋
+                    }
+
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                        labels: chart_label,
+                        datasets: [{
+                            label: '예측생선',
+                            data: chart_data,
+                            borderWidth: 1,
+                            //barThickness: 50 // 막대두께 50px고정
+                        }]
+                        },
+                        options: {
+                        scales: {
+                            y: {
+                            beginAtZero: true
+                            }
+                        }
+                        }
+                    });
+
+                },
+                fail:function(){
+                    alert('예측하는데 오류가 발생했습니다. 다시 시도해주세요.')
+                }
+
+
+            });
+        }
+
+    </script>
 </head>
 <body>
-    <h2>생선 특성 입력</h2>
-    <form method="POST">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>무게 (Weight):</label>
-            <input type="number" step="any" name="weight" value="{{ weight|default:'' }}" required>
-        </div>
-        <div class="form-group">
-            <label>길이 (Length):</label>
-            <input type="number" step="any" name="length" value="{{ length|default:'' }}" required>
-        </div>
-        <div class="form-group">
-            <label>대각선 (Diagonal):</label>
-            <input type="number" step="any" name="diagonal" value="{{ diagonal|default:'' }}" required>
-        </div>
-        <div class="form-group">
-            <label>높이 (Height):</label>
-            <input type="number" step="any" name="height" value="{{ height|default:'' }}" required>
-        </div>
-        <div class="form-group">
-            <label>넓이 (Width):</label>
-            <input type="number" step="any" name="width" value="{{ width|default:'' }}" required>
-        </div>
-        <button type="submit">예측하기</button>
-    </form>
-
-    {% if pred_fish %}
-    <div class="result-box">
-        <h3>예측 생선 : {{ pred_fish }} (예측확률 : {{ max_proba }})</h3>
-        <pre>{{ classes_str }}
-{{ proba_str }}</pre>
-        <h4>전체 확률 그래프</h4>
-        <img src="data:image/png;base64,{{ graph }}" alt="예측 확률 그래프" style="max-width: 100%;">
+    <h1>메인페이지</h1>
+    <div>
+        <label> 생선의 무게, 길이,대각선, 높이, 넓이 (290.0,26.3,31.2,12.48,4.3056)</label><br/>
+        <input type='text' name='data' id='data'>
+        <button type='button' onclick='sendBtn()'>예측</button>
+        <br>
+        <br>
+        <div>입력데이터 : <span id='input_data'>데이터입력필요</span></div>
+        <div>예측생선 : <span id='result'> ? </span></div>
+        <div>예측확률 : <span id='result2'> ? </span></div>
     </div>
-    {% endif %}
 
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h2>생선 특성 입력</h2>
-        <a href="{% url 'board_list' %}" style="padding: 8px 14px; background-color: #495057; color: white; text-decoration: none; border-radius: 4px; font-size: 14px;">예측 기록 게시판 보기</a>
+
+    <!-- 그래프   -->
+    <div>
+        <canvas id="myChart"></canvas>
     </div>
+    <!-- 그래프   -->
+
+    <script>
+    
+    </script>
 
 </body>
 </html>
